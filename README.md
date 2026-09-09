@@ -416,7 +416,7 @@ to provide centralized API error handling for application exceptions.
 
 **Uday Patil**
 
-GitHub: `<YOUR_GITHUB_PROFILE_URL>`
+GitHub: [[`<YOUR_GITHUB_PROFILE_URL>`](https://github.com/udaypatil0203)]
 
 ---
 
