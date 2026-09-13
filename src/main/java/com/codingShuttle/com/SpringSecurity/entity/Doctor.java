@@ -19,9 +19,9 @@ public class Doctor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-//    @OneToOne
-//    @MapsId
-//    private User user;
+    @OneToOne//mapping user to Doctor
+    @MapsId//maps user Id to Doctor id
+    private User user;
 
     @Column(nullable = false, length = 100)
     private String name;

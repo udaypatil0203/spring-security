@@ -1,6 +1,8 @@
 package com.codingShuttle.com.SpringSecurity.security;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,9 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.codingShuttle.com.SpringSecurity.dto.LoginRequestDto;
 import com.codingShuttle.com.SpringSecurity.dto.LoginResponseDto;
+import com.codingShuttle.com.SpringSecurity.dto.SignUpRequestDto;
 import com.codingShuttle.com.SpringSecurity.dto.SignupResponseDto;
+import com.codingShuttle.com.SpringSecurity.entity.Patient;
 import com.codingShuttle.com.SpringSecurity.entity.User;
 import com.codingShuttle.com.SpringSecurity.entity.type.AuthProviderType;
+import com.codingShuttle.com.SpringSecurity.entity.type.RoleType;
+import com.codingShuttle.com.SpringSecurity.repository.PatientRepository;
 import com.codingShuttle.com.SpringSecurity.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +35,7 @@ public class AuthService {  //Take username + password → authenticate the user
 	private final UserRepository userRepository;
 	private final AuthenticationManager authenticationManager;
 	private final AuthUtil authUtil;
+	private final PatientRepository patientRepository;
 //	AuthenticationManager
 //    		↓
 //	AuthenticationProvider
@@ -57,7 +64,7 @@ public class AuthService {  //Take username + password → authenticate the user
 				
 	}
 	
-	public User signUpInternal(LoginRequestDto signupRequestDto, AuthProviderType authProviderType, String providerId) {
+	public User signUpInternal(SignUpRequestDto signupRequestDto, AuthProviderType authProviderType, String providerId) {
 		
 		User user = userRepository.findByUsername(signupRequestDto.getUsername()).orElse(null);
 
@@ -69,17 +76,28 @@ public class AuthService {  //Take username + password → authenticate the user
                 .username(signupRequestDto.getUsername())
                 .providerId(providerId)
                 .providerType(authProviderType)
+                .roles(signupRequestDto.getRoles())// RoleType.PATIENT    //by default any added user is set to be a patient
                 .build();
 	    
 	    if(authProviderType == AuthProviderType.EMAIL) {
 	    	user.setPassword(passwordEncoder.encode(signupRequestDto.getPassword()));
 	    }
 	    
-	    return userRepository.save(user);
+	    user = userRepository.save(user);
+	    
+	    Patient patient = Patient.builder()
+	    					.name(signupRequestDto.getName())
+	    					.email(signupRequestDto.getUsername())
+	    					.user(user)
+	    					.build();	
+	    
+	    patientRepository.save(patient);
+	    
+	    return user; 
 	}
 	
 	//login Controller
-	public SignupResponseDto signup(LoginRequestDto signupRequestDto) {
+	public SignupResponseDto signup(SignUpRequestDto signupRequestDto) {
 		User user = signUpInternal(signupRequestDto, AuthProviderType.EMAIL, null); 
 	    
 
@@ -102,13 +120,14 @@ public class AuthService {  //Take username + password → authenticate the user
 		
 		User user = userRepository.findByProviderIdAndProviderType(providerId, providerType).orElse(null);
 		String email = oAuth2User.getAttribute("email");
+		String name = oAuth2User.getAttribute("name");
 		
 		User emailUser = userRepository.findByUsername(email).orElse(null);
 		
 		if(user == null && emailUser == null) {
 			//signup flow:
 			String username = authUtil.determineUsernameFromOAuth2User(oAuth2User, registrationId, providerId);
-			user = signUpInternal(new LoginRequestDto(username, null),providerType, providerId);
+			user = signUpInternal(new SignUpRequestDto(username, null, name, Set.of(RoleType.PATIENT)),providerType, providerId);
 		}else if(user != null) {
 			if(email != null && !email.isBlank() && !email.equals(user.getUsername())) {
 				user.setUsername(email);

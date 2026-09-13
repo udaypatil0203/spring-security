@@ -46,9 +46,9 @@ public class Patient {
 
     private String gender;
 
-//    @OneToOne
-//    @MapsId
-//    private User user;
+    @OneToOne //(map user to the patient)
+    @MapsId//maps the user Id to the Patient Id (Patient id is not needed actually)
+    private User user;
 
     @CreationTimestamp
     @Column(updatable = false)
